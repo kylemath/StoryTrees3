@@ -12,9 +12,11 @@ let voices_on = false;
 let first_time = 1; // to only maximize on first time
 let sceneTimerStart = true; // for auto advance after x time
 
-let autoadvance_delay = 180; // seconds
+let autoadvance_delay = 360; // seconds
 const locPrefix = "assets/auditory/clips/";
 const fileSufix = "_story.mp3";
+
+const CURSOR_SIZE = 50;
 
 function setup() {
   // setup camera capture
@@ -56,15 +58,13 @@ function preload() {
   }
   soundFiles = [...Object.values(sounds)];
 
-  soundFileWind = loadSound("assets/auditory/wind only_ST2.mp3");
-  soundFileVoices = loadSound("assets/auditory/all voices_ST2.mp3");
+  soundFileWind = loadSound("assets/auditory/background/BG-1.mp3");
 
   bg_title = loadImage("assets/visual/Page_01.jpg");
   bg_cam = loadImage("assets/visual/Page_02.jpg");
   bg_intro = loadImage("assets/visual/Page_03.jpg");
   bg_credits = loadImage("assets/visual/Page_10.jpg");
-  bg_credits2 = loadImage("assets/visual/Page_11.jpg");
-  bg_outro = loadImage("assets/visual/Page_12.jpg");
+  bg_outro = loadImage("assets/visual/Page_11.jpg");
 
   hotspot1 = loadImage("assets/visual/Page_04.jpg");
   hotspot2 = loadImage("assets/visual/Page_05.jpg");
@@ -75,9 +75,9 @@ function preload() {
 
   hotspots = [hotspot1, hotspot2, hotspot3, hotspot4, hotspot5, hotspot6];
 
-  nose_spot = loadImage("assets/visual/nose_button.png");
-  nose_spot_red = loadImage("assets/visual/nose_button_red.png");
-  nose_spot_green = loadImage("assets/visual/nose_button_green.png");
+  nose_spot = loadImage("assets/visual/raven_button_1.png");
+  nose_spot_red = loadImage("assets/visual/raven_button_2.png");
+  nose_spot_green = loadImage("assets/visual/raven_button_3.png");
 
   setupSounds();
 }
@@ -92,11 +92,6 @@ function setupSounds() {
   soundFileWindGain = new p5.Gain();
   soundFileWindGain.setInput(soundFileWind);
   soundFileWindGain.connect(backgroundGain);
-
-  soundFileVoices.disconnect();
-  soundFileVoicesGain = new p5.Gain();
-  soundFileVoicesGain.setInput(soundFileVoices);
-  soundFileVoicesGain.connect(backgroundGain);
 
   // setup foreground gain
   masterGain = new p5.Gain();
@@ -136,8 +131,9 @@ function mousePressed() {
   }
   voices_on = false;
   scene_num++;
+
   sceneTimerStart = true;
-  if (scene_num == 12) {
+  if (scene_num == 11) {
     restartShow();
   }
 }
@@ -162,7 +158,6 @@ function autoAdvance() {
 function restartShow() {
   scene_num = 0;
   wind_on = false;
-  backvoices_on = false;
   voices_on = false;
 
   soundFileWind.stop();
@@ -212,9 +207,6 @@ function draw() {
       break;
     case 10:
       scene10();
-      break;
-    case 11:
-      scene11();
     default:
     //
   }
@@ -234,43 +226,20 @@ function scene1() {
     soundFileWind.fade(1, 1);
     wind_on = true;
   }
-  if (millis() - scene_start > 3000) {
-    drawStatic();
-  }
 }
 
 function scene2() {
   autoAdvance();
   background(bg_intro);
-  if (!backvoices_on) {
-    soundFileVoices.loop();
-    soundFileVoices.pan(0);
-    soundFileVoicesGain.amp(0.5);
-    soundFileVoices.fade(1, 1);
-    backvoices_on = true;
-  }
-
-  drawStatic();
-}
-
-function drawStatic() {
-  for (var ispot = 0; ispot < 2500; ispot++) {
-    squareColor = color(random(0, 255));
-    squareColor.setAlpha(35);
-    fill(squareColor);
-    strokeWeight(0);
-    rect(random(0, width), random(0, height), 10, 10);
-  }
 }
 
 function scene() {
   //put hotspot background on
+  soundFileWind.fade(0, 1);
 
   autoAdvance();
 
   background(hotspots[scene_num - 3]);
-
-  drawStatic();
 
   // flip camera to match head movement
   if (videoInput) {
@@ -333,11 +302,11 @@ function scene() {
     outputX = positions[62][0];
     outputY = positions[62][1];
     if (outputSmile > 0.9) {
-      image(nose_spot_green, outputX, outputY, 25, 25);
+      image(nose_spot_green, outputX, outputY, CURSOR_SIZE, CURSOR_SIZE);
     } else if (outputSmile < 0.1 && outputSmile != 0.0) {
-      image(nose_spot_red, outputX, outputY, 25, 25);
+      image(nose_spot_red, outputX, outputY, CURSOR_SIZE, CURSOR_SIZE);
     } else {
-      image(nose_spot, outputX, outputY, 25, 25);
+      image(nose_spot, outputX, outputY, CURSOR_SIZE, CURSOR_SIZE);
     }
     pop();
 
@@ -383,26 +352,14 @@ function pan_sounds(startSound) {
 function scene9() {
   autoAdvance();
   background(bg_credits);
-  soundFileK1.fade(0, 1);
-  soundFileL1.fade(0, 1);
-  soundFileK2.fade(0, 1);
-  soundFileL2.fade(0, 1);
-  soundFileK3.fade(0, 1);
-  soundFileL3.fade(0, 1);
-  soundFileK4.fade(0, 1);
-  soundFileL4.fade(0, 1);
-  drawStatic();
+  for (let i = 40; i < 48; i++) {
+    soundFiles[i].fade(0, 1);
+  }
+  soundFileWind.fade(0, 1);
 }
 
 function scene10() {
   autoAdvance();
-  background(bg_credits2);
-  drawStatic();
-}
-
-function scene11() {
-  autoAdvance();
   background(bg_outro);
   soundFileWind.fade(0, 1);
-  soundFileVoices.fade(0, 1);
 }
