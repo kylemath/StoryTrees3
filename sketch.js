@@ -459,15 +459,24 @@ function scene() {
   }
 }
 
+let first_scene_draw = true;
+
 function pan_sounds(mixSceneNum) {
-  if (mixSceneNum == 0) {
-    wind_on = false;
-    stopAudio(soundFileWind);
-  } else {
-    stopAudio(BGsoundFiles[mixSceneNum - 1]);
-    background_on = false;
+  if (first_scene_draw) {
+    first_scene_draw = false;
+    if (mixSceneNum == 0) {
+      // stop wind on first draw of first scene
+      wind_on = false;
+      stopAudio(soundFileWind);
+    } else {
+      // stop previous background sound on first draw
+      stopAudio(BGsoundFiles[mixSceneNum - 1]);
+      background_on = false;
+    }
   }
+
   if (!background_on) {
+    console.log(BGsoundFiles[mixSceneNum]);
     BGsoundFiles[mixSceneNum].loop();
     BGsoundFileGains[mixSceneNum].amp(0.1);
     BGsoundFiles[mixSceneNum].fade(1, 1);
