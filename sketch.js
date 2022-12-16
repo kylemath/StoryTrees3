@@ -1,14 +1,12 @@
 let positions;
 let videoInput;
-let cnv;
-let outputArea = 0;
 let outputSmile = 0;
 let soundFile;
 let panning;
 let scene_num = 0; // index of which screen of the UX flow you are in
 let wind_on = false;
-let backvoices_on = false;
 let voices_on = false;
+let background_on = false;
 let first_time = 1; // to only maximize on first time
 let sceneTimerStart = true; // for auto advance after x time
 
@@ -23,6 +21,47 @@ const NUM_BACKGROUND = 19;
 const NUM_MIDGROUND = 16;
 const NUM_FOREGROUND = 25;
 
+let ctracker;
+let classifier;
+let BGsoundFiles;
+let MGsoundFiles;
+let FGsoundFiles;
+
+let soundFileWind;
+let bg_title;
+let bg_cam;
+let bg_intro;
+let bg_credits;
+let bg_outro;
+let hotspots;
+
+let nose_spot;
+let nose_spot_red;
+let nose_spot_green;
+
+let scene_start;
+
+let masterGain;
+let backgroundGain;
+let midgroundGain;
+let foregroundGain;
+let soundFileWindGain;
+
+let BGsoundFileGains;
+let MGsoundFileGains;
+let FGsoundFileGains;
+
+let BGclipNums;
+let MGclipNums;
+let FGclipNums;
+
+let outputArea;
+let outputX;
+
+let randBG;
+let randMG;
+let randFG;
+
 function setup() {
   // setup camera capture
   videoInput = createCapture(VIDEO);
@@ -30,7 +69,7 @@ function setup() {
   videoInput.position(0, 0);
 
   // setup canvas
-  cnv = createCanvas(1000, 528);
+  let cnv = createCanvas(1000, 528);
   cnv.position(0, 0);
 
   // setup tracker
@@ -41,7 +80,6 @@ function setup() {
   // setup emotion classifier
   classifier = new emotionClassifier();
   classifier.init(emotionModel);
-  emotionData = classifier.getBlank();
 }
 
 function preload() {
@@ -116,12 +154,12 @@ function preload() {
   bg_credits = loadImage("assets/visual/Page_10.jpg");
   bg_outro = loadImage("assets/visual/Page_11.jpg");
 
-  hotspot1 = loadImage("assets/visual/Page_04.jpg");
-  hotspot2 = loadImage("assets/visual/Page_05.jpg");
-  hotspot3 = loadImage("assets/visual/Page_06.jpg");
-  hotspot4 = loadImage("assets/visual/Page_07.jpg");
-  hotspot5 = loadImage("assets/visual/Page_08.jpg");
-  hotspot6 = loadImage("assets/visual/Page_09.jpg");
+  let hotspot1 = loadImage("assets/visual/Page_04.jpg");
+  let hotspot2 = loadImage("assets/visual/Page_05.jpg");
+  let hotspot3 = loadImage("assets/visual/Page_06.jpg");
+  let hotspot4 = loadImage("assets/visual/Page_07.jpg");
+  let hotspot5 = loadImage("assets/visual/Page_08.jpg");
+  let hotspot6 = loadImage("assets/visual/Page_09.jpg");
 
   hotspots = [hotspot1, hotspot2, hotspot3, hotspot4, hotspot5, hotspot6];
 
@@ -140,7 +178,7 @@ function setupSounds() {
   // setup background gain
   backgroundGain = new p5.Gain();
   backgroundGain.connect();
-  backgroundGain.amp(0.2);
+  backgroundGain.amp(0.1);
 
   soundFileWind.disconnect();
   soundFileWindGain = new p5.Gain();
@@ -157,21 +195,21 @@ function setupSounds() {
   foregroundGain.connect(masterGain);
   foregroundGain.amp(0.2);
 
-  const BGgains = {};
+  let BGgains = {};
   BGsoundFileGains = [];
   for (let i = 0; i < BGclipNums.length; i++) {
     let variableName = `BGsoundFile${i}Gain`;
     BGgains[variableName] = new p5.Gain();
     BGsoundFileGains.push(BGgains[variableName]);
   }
-  const MGgains = {};
+  let MGgains = {};
   MGsoundFileGains = [];
   for (let i = 0; i < MGclipNums.length; i++) {
     let variableName = `MGsoundFile${i}Gain`;
     MGgains[variableName] = new p5.Gain();
     MGsoundFileGains.push(MGgains[variableName]);
   }
-  const FGgains = {};
+  let FGgains = {};
   FGsoundFileGains = [];
   for (let i = 0; i < FGclipNums.length; i++) {
     let variableName = `FGsoundFile${i}Gain`;
@@ -222,6 +260,7 @@ function mousePressed() {
   if (scene_num == 0) {
     scene_start = millis();
   }
+  background_on = false;
   voices_on = false;
   scene_num++;
 
@@ -239,6 +278,7 @@ function autoAdvance() {
 
   // auto advance after autoadvance_delay seconds
   if (millis() - scene_start > autoadvance_delay * 1000) {
+    background_on = false;
     voices_on = false;
     scene_num++;
     sceneTimerStart = true;
@@ -252,10 +292,19 @@ function restartShow() {
   scene_num = 0;
   wind_on = false;
   voices_on = false;
+  background_on = false;
 
   soundFileWind.stop();
 
-  soundFiles.forEach((soundFile) => soundFile.stop());
+  BGsoundFiles.forEach((soundFile) => {
+    soundFile.stop();
+  });
+  MGsoundFiles.forEach((soundFile) => {
+    soundFile.stop();
+  });
+  FGsoundFiles.forEach((soundFile) => {
+    soundFile.stop();
+  });
 }
 
 function draw() {
@@ -303,6 +352,10 @@ function draw() {
   }
 }
 
+function stopAudio(thisSound) {
+  thisSound.fade(0, 1);
+}
+
 function scene0() {
   background(bg_title);
 }
@@ -312,7 +365,6 @@ function scene1() {
   background(bg_cam);
   if (!wind_on) {
     soundFileWind.loop();
-    soundFileWind.pan(0);
     soundFileWindGain.amp(1);
     soundFileWind.fade(1, 1);
     wind_on = true;
@@ -375,8 +427,8 @@ function scene() {
         maxY = positions[i][1];
       }
     }
-    boxWidth = maxX - minX;
-    boxHeight = maxY - minY;
+    let boxWidth = maxX - minX;
+    let boxHeight = maxY - minY;
     outputArea = (boxWidth * boxHeight) / (width * height);
     outputArea = outputArea + 0.35;
 
@@ -390,7 +442,10 @@ function scene() {
     noStroke();
     fill(0, 255, 255);
     outputX = positions[62][0];
-    outputY = positions[62][1];
+    let outputY = positions[62][1];
+    // outputX = width - mouseX;
+    // outputY = mouseY;
+
     if (outputSmile > 0.9) {
       image(nose_spot_green, outputX, outputY, CURSOR_SIZE, CURSOR_SIZE);
     } else if (outputSmile < 0.1 && outputSmile != 0.0) {
@@ -406,21 +461,25 @@ function scene() {
 
 function pan_sounds(mixSceneNum) {
   if (mixSceneNum == 0) {
-    soundFileWind.fade(0, 1);
+    wind_on = false;
+    stopAudio(soundFileWind);
   } else {
-    BGsoundFiles[mixSceneNum - 1].fade(0, 1);
+    stopAudio(BGsoundFiles[mixSceneNum - 1]);
+    background_on = false;
   }
-  BGsoundFiles[mixSceneNum].loop();
-  BGsoundFiles[mixSceneNum].pan(0);
-  BGsoundFileGains[mixSceneNum].amp(0.1);
-  BGsoundFiles[mixSceneNum].fade(1, 1);
+  if (!background_on) {
+    BGsoundFiles[mixSceneNum].loop();
+    BGsoundFileGains[mixSceneNum].amp(0.1);
+    BGsoundFiles[mixSceneNum].fade(1, 1);
+    background_on = true;
+  }
 
   if (!voices_on) {
     if (mixSceneNum > 0) {
-      MGsoundFiles[(mixSceneNum - 1) * 2].fade(0, 1);
-      MGsoundFiles[(mixSceneNum - 1) * 2 + 1].fade(0, 1);
-      FGsoundFiles[(mixSceneNum - 1) * 2].fade(0, 1);
-      FGsoundFiles[(mixSceneNum - 1) * 2 + 1].fade(0, 1);
+      stopAudio(MGsoundFiles[(mixSceneNum - 1) * 2]);
+      stopAudio(MGsoundFiles[(mixSceneNum - 1) * 2 + 1]);
+      stopAudio(FGsoundFiles[(mixSceneNum - 1) * 2]);
+      stopAudio(FGsoundFiles[(mixSceneNum - 1) * 2 + 1]);
     }
     // Midground Sounds on two sides
 
@@ -437,34 +496,34 @@ function pan_sounds(mixSceneNum) {
   //get nose position
   gazeX = constrain(outputX, 0, width);
   voicebalance = map(gazeX, 0, width, 0, 1);
+  // voicebalance = mouseX / width;
   //adjust relative sound amplitude based on gaze location
-  let thisGaze = 0;
+  let thisGaze;
   if (voicebalance < 0.25) {
     thisGaze = 0;
-    MGsoundFileGains[mixSceneNum * 2].amp(0.5);
-    FGsoundFileGains[mixSceneNum * 2].amp(0.2);
-    FGsoundFileGains[mixSceneNum * 2 + 1].amp(0.1);
-    MGsoundFileGains[mixSceneNum * 2 + 1].amp(0);
+    MGsoundFileGains[mixSceneNum * 2].amp(0.7);
+    FGsoundFileGains[mixSceneNum * 2].amp(0.5);
+    FGsoundFileGains[mixSceneNum * 2 + 1].amp(0.3);
+    MGsoundFileGains[mixSceneNum * 2 + 1].amp(0.1);
   } else if (voicebalance >= 0.25 && voicebalance < 0.5) {
     thisGaze = 1;
-    MGsoundFileGains[mixSceneNum * 2].amp(0.2);
-    FGsoundFileGains[mixSceneNum * 2].amp(0.5);
-    FGsoundFileGains[mixSceneNum * 2 + 1].amp(0.2);
-    MGsoundFileGains[mixSceneNum * 2 + 1].amp(0.1);
+    MGsoundFileGains[mixSceneNum * 2].amp(0.5);
+    FGsoundFileGains[mixSceneNum * 2].amp(0.7);
+    FGsoundFileGains[mixSceneNum * 2 + 1].amp(0.5);
+    MGsoundFileGains[mixSceneNum * 2 + 1].amp(0.3);
   } else if (voicebalance >= 0.5 && voicebalance < 0.75) {
     thisGaze = 2;
-    MGsoundFileGains[mixSceneNum * 2].amp(0.1);
-    FGsoundFileGains[mixSceneNum * 2].amp(0.2);
-    FGsoundFileGains[mixSceneNum * 2 + 1].amp(0.5);
-    MGsoundFileGains[mixSceneNum * 2 + 1].amp(0.2);
+    MGsoundFileGains[mixSceneNum * 2].amp(0.3);
+    FGsoundFileGains[mixSceneNum * 2].amp(0.5);
+    FGsoundFileGains[mixSceneNum * 2 + 1].amp(0.7);
+    MGsoundFileGains[mixSceneNum * 2 + 1].amp(0.5);
   } else {
     thisGaze = 3;
-    MGsoundFileGains[mixSceneNum * 2].amp(0);
-    FGsoundFileGains[mixSceneNum * 2].amp(0.1);
-    FGsoundFileGains[mixSceneNum * 2 + 1].amp(0.2);
-    MGsoundFileGains[mixSceneNum * 2 + 1].amp(0.5);
+    MGsoundFileGains[mixSceneNum * 2].amp(0.1);
+    FGsoundFileGains[mixSceneNum * 2].amp(0.3);
+    FGsoundFileGains[mixSceneNum * 2 + 1].amp(0.5);
+    MGsoundFileGains[mixSceneNum * 2 + 1].amp(0.7);
   }
-
   //adjust foreground voices based on proximity
   soundVolume = constrain(outputArea, 0, 1);
   masterGain.amp(soundVolume);
@@ -474,20 +533,51 @@ function scene9() {
   autoAdvance();
   background(bg_credits);
   for (let i = 0; i < FGsoundFiles.length; i++) {
-    FGsoundFiles[i].fade(0, 1);
+    stopAudio(FGsoundFiles[i]);
   }
+  background_on = false;
   for (let i = 0; i < MGsoundFiles.length; i++) {
-    MGsoundFiles[i].fade(0, 1);
+    stopAudio(MGsoundFiles[i]);
   }
   for (let i = 0; i < BGsoundFiles.length; i++) {
-    BGsoundFiles[i].fade(0, 1);
+    stopAudio(BGsoundFiles[i]);
   }
-  soundFileWindGain.amp(0.5);
-  soundFileWind.fade(1, 1);
+  voices_on = false;
+
+  randBG = Math.floor(Math.random() * 6);
+  randMG = Math.floor(Math.random() * 12);
+  randFG = Math.floor(Math.random() * 12);
+
+  if (!background_on) {
+    BGsoundFiles[randBG].loop();
+    BGsoundFileGains[randBG].amp(0.1);
+    BGsoundFiles[randBG].fade(1, 1);
+    background_on = true;
+  }
+
+  if (!voices_on) {
+    MGsoundFiles[randMG].loop();
+    MGsoundFileGains[randMG].amp(0.5);
+    MGsoundFiles[randMG].fade(1, 1);
+    FGsoundFiles[randFG].loop();
+    FGsoundFileGains[randFG].amp(0.7);
+    FGsoundFiles[randFG].fade(1, 1);
+    voices_on = true;
+  }
+
+  if (!wind_on) {
+    soundFileWind.loop();
+    soundFileWindGain.amp(0.1);
+    soundFileWind.fade(1, 1);
+    wind_on = true;
+  }
 }
 
 function scene10() {
   autoAdvance();
   background(bg_outro);
-  soundFileWind.fade(0, 1);
+  stopAudio(BGsoundFiles[randBG]);
+  stopAudio(MGsoundFiles[randMG]);
+  stopAudio(FGsoundFiles[randFG]);
+  stopAudio(soundFileWind);
 }
