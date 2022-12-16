@@ -442,26 +442,26 @@ function pan_sounds(mixSceneNum) {
   if (voicebalance < 0.25) {
     thisGaze = 0;
     MGsoundFileGains[mixSceneNum * 2].amp(0.5);
-    FGsoundFileGains[mixSceneNum * 2].amp(0);
-    FGsoundFileGains[mixSceneNum * 2 + 1].amp(0);
+    FGsoundFileGains[mixSceneNum * 2].amp(0.2);
+    FGsoundFileGains[mixSceneNum * 2 + 1].amp(0.1);
     MGsoundFileGains[mixSceneNum * 2 + 1].amp(0);
   } else if (voicebalance >= 0.25 && voicebalance < 0.5) {
     thisGaze = 1;
-    MGsoundFileGains[mixSceneNum * 2].amp(0);
+    MGsoundFileGains[mixSceneNum * 2].amp(0.2);
     FGsoundFileGains[mixSceneNum * 2].amp(0.5);
-    FGsoundFileGains[mixSceneNum * 2 + 1].amp(0);
-    MGsoundFileGains[mixSceneNum * 2 + 1].amp(0);
+    FGsoundFileGains[mixSceneNum * 2 + 1].amp(0.2);
+    MGsoundFileGains[mixSceneNum * 2 + 1].amp(0.1);
   } else if (voicebalance >= 0.5 && voicebalance < 0.75) {
     thisGaze = 2;
-    MGsoundFileGains[mixSceneNum * 2].amp(0);
-    FGsoundFileGains[mixSceneNum * 2].amp(0);
+    MGsoundFileGains[mixSceneNum * 2].amp(0.1);
+    FGsoundFileGains[mixSceneNum * 2].amp(0.2);
     FGsoundFileGains[mixSceneNum * 2 + 1].amp(0.5);
-    MGsoundFileGains[mixSceneNum * 2 + 1].amp(0);
+    MGsoundFileGains[mixSceneNum * 2 + 1].amp(0.2);
   } else {
     thisGaze = 3;
     MGsoundFileGains[mixSceneNum * 2].amp(0);
-    FGsoundFileGains[mixSceneNum * 2].amp(0);
-    FGsoundFileGains[mixSceneNum * 2 + 1].amp(0);
+    FGsoundFileGains[mixSceneNum * 2].amp(0.1);
+    FGsoundFileGains[mixSceneNum * 2 + 1].amp(0.2);
     MGsoundFileGains[mixSceneNum * 2 + 1].amp(0.5);
   }
 
