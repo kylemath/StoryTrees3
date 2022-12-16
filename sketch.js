@@ -13,10 +13,15 @@ let first_time = 1; // to only maximize on first time
 let sceneTimerStart = true; // for auto advance after x time
 
 let autoadvance_delay = 360; // seconds
-const locPrefix = "assets/auditory/clips/";
-const fileSufix = "_story.mp3";
-
+const locPrefix = "assets/auditory/";
+const fileSufix = ".mp3";
+const locPrefixOrig = "assets/auditory/clips/";
+const fileSufixOrig = "_story.mp3";
 const CURSOR_SIZE = 50;
+
+const NUM_BACKGROUND = 19;
+const NUM_MIDGROUND = 16;
+const NUM_FOREGROUND = 25;
 
 function setup() {
   // setup camera capture
@@ -42,21 +47,66 @@ function setup() {
 function preload() {
   soundFormats("mp3", "ogg");
 
+  // pick 6 random background sounds
+
   //randomize the clip order
-  clipNums = [];
-  for (var i = 1; i < 49; i++) {
-    clipNums = concat(clipNums, i);
+  BGclipNums = [];
+  for (var i = 2; i < NUM_BACKGROUND; i++) {
+    BGclipNums = concat(BGclipNums, i);
   }
-  clipNums = shuffle(clipNums);
-  const sounds = {};
-  for (let i = 0; i < clipNums.length; i++) {
-    let page = Math.floor(i / 4) + 1;
-    let index = (i % 4) + 1;
-    let variableName = `soundFile${String.fromCharCode(page + 64)}${index}`;
-    let filePath = join([locPrefix, nf(clipNums[i], 2), fileSufix], "");
-    sounds[variableName] = loadSound(filePath);
+  BGclipNums = shuffle(BGclipNums);
+  BGclipNums = BGclipNums.slice(0, 6);
+
+  let BGsounds = {};
+  for (let i = 0; i < BGclipNums.length; i++) {
+    let variableName = `BGsoundFile${i}`;
+    let filePath = join(
+      [locPrefix, "background/BG-", BGclipNums[i], fileSufix],
+      ""
+    );
+    BGsounds[variableName] = loadSound(filePath);
   }
-  soundFiles = [...Object.values(sounds)];
+  BGsoundFiles = [...Object.values(BGsounds)];
+
+  // pick 12 random midground sounds
+  //randomize the clip order
+  MGclipNums = [];
+  for (var i = 1; i < NUM_MIDGROUND; i++) {
+    MGclipNums = concat(MGclipNums, i);
+  }
+  MGclipNums = shuffle(MGclipNums);
+  MGclipNums = MGclipNums.slice(0, 12);
+
+  let MGsounds = {};
+  for (let i = 0; i < MGclipNums.length; i++) {
+    let variableName = `MGsoundFile${i}`;
+    let filePath = join(
+      [locPrefix, "midground/MG-", MGclipNums[i], fileSufix],
+      ""
+    );
+    MGsounds[variableName] = loadSound(filePath);
+  }
+  MGsoundFiles = [...Object.values(MGsounds)];
+
+  // pick 12 random foreground sounds
+  //randomize the clip order
+  FGclipNums = [];
+  for (var i = 1; i < NUM_FOREGROUND; i++) {
+    FGclipNums = concat(FGclipNums, i);
+  }
+  FGclipNums = shuffle(FGclipNums);
+  FGclipNums = FGclipNums.slice(0, 12);
+
+  let FGsounds = {};
+  for (let i = 0; i < FGclipNums.length; i++) {
+    let variableName = `FGsoundFile${i}`;
+    let filePath = join(
+      [locPrefix, "foreground/FG-", FGclipNums[i], fileSufix],
+      ""
+    );
+    FGsounds[variableName] = loadSound(filePath);
+  }
+  FGsoundFiles = [...Object.values(FGsounds)];
 
   soundFileWind = loadSound("assets/auditory/background/BG-1.mp3");
 
@@ -83,6 +133,10 @@ function preload() {
 }
 
 function setupSounds() {
+  masterGain = new p5.Gain();
+  masterGain.connect();
+  masterGain.amp(0.5);
+
   // setup background gain
   backgroundGain = new p5.Gain();
   backgroundGain.connect();
@@ -94,28 +148,67 @@ function setupSounds() {
   soundFileWindGain.connect(backgroundGain);
 
   // setup foreground gain
-  masterGain = new p5.Gain();
-  masterGain.connect();
+  midgroundGain = new p5.Gain();
+  midgroundGain.connect(masterGain);
+  midgroundGain.amp(0.2);
 
-  const gains = {};
-  soundFileGains = [];
-  for (let i = 0; i < clipNums.length; i++) {
-    let page = Math.floor(i / 4) + 1;
-    let index = (i % 4) + 1;
-    let variableName = `soundFile${String.fromCharCode(page + 64)}${index}Gain`;
-    gains[variableName] = new p5.Gain();
-    soundFileGains.push(gains[variableName]);
+  // setup foreground gain
+  foregroundGain = new p5.Gain();
+  foregroundGain.connect(masterGain);
+  foregroundGain.amp(0.2);
+
+  const BGgains = {};
+  BGsoundFileGains = [];
+  for (let i = 0; i < BGclipNums.length; i++) {
+    let variableName = `BGsoundFile${i}Gain`;
+    BGgains[variableName] = new p5.Gain();
+    BGsoundFileGains.push(BGgains[variableName]);
+  }
+  const MGgains = {};
+  MGsoundFileGains = [];
+  for (let i = 0; i < MGclipNums.length; i++) {
+    let variableName = `MGsoundFile${i}Gain`;
+    MGgains[variableName] = new p5.Gain();
+    MGsoundFileGains.push(MGgains[variableName]);
+  }
+  const FGgains = {};
+  FGsoundFileGains = [];
+  for (let i = 0; i < FGclipNums.length; i++) {
+    let variableName = `FGsoundFile${i}Gain`;
+    FGgains[variableName] = new p5.Gain();
+    FGsoundFileGains.push(FGgains[variableName]);
   }
 
-  for (let i = 0; i < soundFiles.length; i++) {
-    soundFiles[i].disconnect();
-    soundFileGains[i].setInput(soundFiles[i]);
-    soundFileGains[i].connect(masterGain);
+  for (let i = 0; i < BGsoundFiles.length; i++) {
+    BGsoundFiles[i].disconnect();
+    BGsoundFileGains[i].setInput(BGsoundFiles[i]);
+    BGsoundFileGains[i].connect(backgroundGain);
   }
-  //adjust foreground voices so one on left one on right
-  const pans = [1.0, 0.5, -0.5, -1.0, 0.0, 0.0, 0.0, 0.0];
-  for (let i = 0; i < soundFiles.length; i++) {
-    soundFiles[i].pan(pans[i % 8]);
+
+  for (let i = 0; i < MGsoundFiles.length; i++) {
+    MGsoundFiles[i].disconnect();
+    MGsoundFileGains[i].setInput(MGsoundFiles[i]);
+    MGsoundFileGains[i].connect(midgroundGain);
+  }
+  for (let i = 0; i < FGsoundFiles.length; i++) {
+    FGsoundFiles[i].disconnect();
+    FGsoundFileGains[i].setInput(FGsoundFiles[i]);
+    FGsoundFileGains[i].connect(foregroundGain);
+  }
+
+  for (let i = 0; i < MGsoundFiles.length; i++) {
+    if (i % 2 == 0) {
+      MGsoundFiles[i].pan(1.0);
+    } else {
+      MGsoundFiles[i].pan(-1.0);
+    }
+  }
+  for (let i = 0; i < FGsoundFiles.length; i++) {
+    if (i % 2 == 0) {
+      FGsoundFiles[i].pan(0.5);
+    } else {
+      FGsoundFiles[i].pan(-0.5);
+    }
   }
 }
 
@@ -144,12 +237,12 @@ function autoAdvance() {
     sceneTimerStart = false;
   }
 
-  // auto advance after 180 seconds
+  // auto advance after autoadvance_delay seconds
   if (millis() - scene_start > autoadvance_delay * 1000) {
     voices_on = false;
     scene_num++;
     sceneTimerStart = true;
-    if (scene_num == 12) {
+    if (scene_num == 11) {
       restartShow();
     }
   }
@@ -161,9 +254,7 @@ function restartShow() {
   voices_on = false;
 
   soundFileWind.stop();
-  soundFileVoices.stop();
 
-  soundFiles.forEach((soundFile) => soundFile.fade(1, 0));
   soundFiles.forEach((soundFile) => soundFile.stop());
 }
 
@@ -222,7 +313,7 @@ function scene1() {
   if (!wind_on) {
     soundFileWind.loop();
     soundFileWind.pan(0);
-    soundFileWindGain.amp(0.9);
+    soundFileWindGain.amp(1);
     soundFileWind.fade(1, 1);
     wind_on = true;
   }
@@ -235,7 +326,6 @@ function scene2() {
 
 function scene() {
   //put hotspot background on
-  soundFileWind.fade(0, 1);
 
   autoAdvance();
 
@@ -310,19 +400,37 @@ function scene() {
     }
     pop();
 
-    pan_sounds((scene_num - 3) * 8);
+    pan_sounds(scene_num - 3);
   }
 }
 
-function pan_sounds(startSound) {
+function pan_sounds(mixSceneNum) {
+  if (mixSceneNum == 0) {
+    soundFileWind.fade(0, 1);
+  } else {
+    BGsoundFiles[mixSceneNum - 1].fade(0, 1);
+  }
+  BGsoundFiles[mixSceneNum].loop();
+  BGsoundFiles[mixSceneNum].pan(0);
+  BGsoundFileGains[mixSceneNum].amp(0.1);
+  BGsoundFiles[mixSceneNum].fade(1, 1);
+
   if (!voices_on) {
-    for (let i = startSound; i < startSound + 8; i++) {
-      if (startSound > 0) {
-        soundFiles[i - 8].fade(0, 1);
-      }
-      soundFileGains[i].amp(0);
-      soundFiles[i].loop();
+    if (mixSceneNum > 0) {
+      MGsoundFiles[(mixSceneNum - 1) * 2].fade(0, 1);
+      MGsoundFiles[(mixSceneNum - 1) * 2 + 1].fade(0, 1);
+      FGsoundFiles[(mixSceneNum - 1) * 2].fade(0, 1);
+      FGsoundFiles[(mixSceneNum - 1) * 2 + 1].fade(0, 1);
     }
+    // Midground Sounds on two sides
+
+    MGsoundFiles[mixSceneNum * 2].loop();
+    MGsoundFiles[mixSceneNum * 2 + 1].loop();
+
+    // Foreground Sounds on two middles
+    FGsoundFiles[mixSceneNum * 2].loop();
+    FGsoundFiles[mixSceneNum * 2 + 1].loop();
+
     voices_on = true;
   }
 
@@ -330,19 +438,32 @@ function pan_sounds(startSound) {
   gazeX = constrain(outputX, 0, width);
   voicebalance = map(gazeX, 0, width, 0, 1);
   //adjust relative sound amplitude based on gaze location
-  let thisBal = 0;
+  let thisGaze = 0;
   if (voicebalance < 0.25) {
-    thisBal = 0;
+    thisGaze = 0;
+    MGsoundFileGains[mixSceneNum * 2].amp(0.5);
+    FGsoundFileGains[mixSceneNum * 2].amp(0);
+    FGsoundFileGains[mixSceneNum * 2 + 1].amp(0);
+    MGsoundFileGains[mixSceneNum * 2 + 1].amp(0);
   } else if (voicebalance >= 0.25 && voicebalance < 0.5) {
-    thisBal = 1;
+    thisGaze = 1;
+    MGsoundFileGains[mixSceneNum * 2].amp(0);
+    FGsoundFileGains[mixSceneNum * 2].amp(0.5);
+    FGsoundFileGains[mixSceneNum * 2 + 1].amp(0);
+    MGsoundFileGains[mixSceneNum * 2 + 1].amp(0);
   } else if (voicebalance >= 0.5 && voicebalance < 0.75) {
-    thisBal = 2;
+    thisGaze = 2;
+    MGsoundFileGains[mixSceneNum * 2].amp(0);
+    FGsoundFileGains[mixSceneNum * 2].amp(0);
+    FGsoundFileGains[mixSceneNum * 2 + 1].amp(0.5);
+    MGsoundFileGains[mixSceneNum * 2 + 1].amp(0);
   } else {
-    thisBal = 3;
+    thisGaze = 3;
+    MGsoundFileGains[mixSceneNum * 2].amp(0);
+    FGsoundFileGains[mixSceneNum * 2].amp(0);
+    FGsoundFileGains[mixSceneNum * 2 + 1].amp(0);
+    MGsoundFileGains[mixSceneNum * 2 + 1].amp(0.5);
   }
-
-  soundFileGains[startSound + thisBal].amp(1);
-  soundFileGains[startSound + thisBal + 4].amp(1 - outputSmile);
 
   //adjust foreground voices based on proximity
   soundVolume = constrain(outputArea, 0, 1);
@@ -352,10 +473,17 @@ function pan_sounds(startSound) {
 function scene9() {
   autoAdvance();
   background(bg_credits);
-  for (let i = 40; i < 48; i++) {
-    soundFiles[i].fade(0, 1);
+  for (let i = 0; i < FGsoundFiles.length; i++) {
+    FGsoundFiles[i].fade(0, 1);
   }
-  soundFileWind.fade(0, 1);
+  for (let i = 0; i < MGsoundFiles.length; i++) {
+    MGsoundFiles[i].fade(0, 1);
+  }
+  for (let i = 0; i < BGsoundFiles.length; i++) {
+    BGsoundFiles[i].fade(0, 1);
+  }
+  soundFileWindGain.amp(0.5);
+  soundFileWind.fade(1, 1);
 }
 
 function scene10() {
