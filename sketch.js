@@ -103,6 +103,8 @@ function preload() {
       ""
     );
     BGsounds[variableName] = loadSound(filePath);
+    BGsounds[variableName].setVolume(1);
+    BGsounds[variableName].amp(1);
   }
   BGsoundFiles = [...Object.values(BGsounds)];
 
@@ -123,6 +125,8 @@ function preload() {
       ""
     );
     MGsounds[variableName] = loadSound(filePath);
+    MGsounds[variableName].setVolume(1);
+    MGsounds[variableName].amp(1);
   }
   MGsoundFiles = [...Object.values(MGsounds)];
 
@@ -143,10 +147,14 @@ function preload() {
       ""
     );
     FGsounds[variableName] = loadSound(filePath);
+    FGsounds[variableName].setVolume(1);
+    FGsounds[variableName].amp(1);
   }
   FGsoundFiles = [...Object.values(FGsounds)];
 
   soundFileWind = loadSound("assets/auditory/background/BG-1.mp3");
+  soundFileWind.setVolume(1);
+  soundFileWind.amp(1);
 
   bg_title = loadImage("assets/visual/Page_01.jpg");
   bg_cam = loadImage("assets/visual/Page_02.jpg");
@@ -173,27 +181,27 @@ function preload() {
 function setupSounds() {
   masterGain = new p5.Gain();
   masterGain.connect();
-  masterGain.amp(0.5);
+  masterGain.amp(1);
 
   // setup background gain
   backgroundGain = new p5.Gain();
-  backgroundGain.connect();
-  backgroundGain.amp(0.1);
+  backgroundGain.connect(masterGain);
+  backgroundGain.amp(1);
+
+  // setup foreground gain
+  midgroundGain = new p5.Gain();
+  midgroundGain.connect(masterGain);
+  midgroundGain.amp(1);
+
+  // setup foreground gain
+  foregroundGain = new p5.Gain();
+  foregroundGain.connect(masterGain);
+  foregroundGain.amp(1);
 
   soundFileWind.disconnect();
   soundFileWindGain = new p5.Gain();
   soundFileWindGain.setInput(soundFileWind);
   soundFileWindGain.connect(backgroundGain);
-
-  // setup foreground gain
-  midgroundGain = new p5.Gain();
-  midgroundGain.connect(masterGain);
-  midgroundGain.amp(0.2);
-
-  // setup foreground gain
-  foregroundGain = new p5.Gain();
-  foregroundGain.connect(masterGain);
-  foregroundGain.amp(0.2);
 
   let BGgains = {};
   BGsoundFileGains = [];
@@ -293,6 +301,8 @@ function restartShow() {
   wind_on = false;
   voices_on = false;
   background_on = false;
+  first_scene_draw = true;
+  first_scene9 = true;
 
   soundFileWind.stop();
 
@@ -352,10 +362,6 @@ function draw() {
   }
 }
 
-function stopAudio(thisSound) {
-  thisSound.fade(0, 1);
-}
-
 function scene0() {
   background(bg_title);
 }
@@ -365,8 +371,7 @@ function scene1() {
   background(bg_cam);
   if (!wind_on) {
     soundFileWind.loop();
-    soundFileWindGain.amp(1);
-    soundFileWind.fade(1, 1);
+    soundFileWindGain.amp(1, 1);
     wind_on = true;
   }
 }
@@ -430,7 +435,7 @@ function scene() {
     let boxWidth = maxX - minX;
     let boxHeight = maxY - minY;
     outputArea = (boxWidth * boxHeight) / (width * height);
-    outputArea = outputArea + 0.35;
+    outputArea = outputArea;
 
     // Draw box on face
     push();
@@ -467,31 +472,28 @@ function pan_sounds(mixSceneNum) {
     if (mixSceneNum == 0) {
       // stop wind on first draw of first scene
       wind_on = false;
-      stopAudio(soundFileWind);
+      soundFileWindGain.amp(0, 2);
     } else {
       // stop previous background sound on first draw
-      stopAudio(BGsoundFiles[mixSceneNum - 1]);
+      BGsoundFileGains[mixSceneNum - 1].amp(0, 2);
       background_on = false;
+      MGsoundFileGains[(mixSceneNum - 1) * 2].amp(0, 1);
+      MGsoundFilesGains[(mixSceneNum - 1) * 2 + 1].amp(0, 1);
+      FGsoundFilesGains[(mixSceneNum - 1) * 2].amp(0, 1);
+      FGsoundFilesGains[(mixSceneNum - 1) * 2 + 1].amp(0, 1);
+      voices_on = false;
     }
   }
 
   if (!background_on) {
     console.log(BGsoundFiles[mixSceneNum]);
     BGsoundFiles[mixSceneNum].loop();
-    BGsoundFileGains[mixSceneNum].amp(0.1);
-    BGsoundFiles[mixSceneNum].fade(1, 1);
+    BGsoundFileGains[mixSceneNum].amp(1, 1);
     background_on = true;
   }
 
   if (!voices_on) {
-    if (mixSceneNum > 0) {
-      stopAudio(MGsoundFiles[(mixSceneNum - 1) * 2]);
-      stopAudio(MGsoundFiles[(mixSceneNum - 1) * 2 + 1]);
-      stopAudio(FGsoundFiles[(mixSceneNum - 1) * 2]);
-      stopAudio(FGsoundFiles[(mixSceneNum - 1) * 2 + 1]);
-    }
     // Midground Sounds on two sides
-
     MGsoundFiles[mixSceneNum * 2].loop();
     MGsoundFiles[mixSceneNum * 2 + 1].loop();
 
@@ -507,77 +509,74 @@ function pan_sounds(mixSceneNum) {
   voicebalance = map(gazeX, 0, width, 0, 1);
   // voicebalance = mouseX / width;
   //adjust relative sound amplitude based on gaze location
-  let thisGaze;
   if (voicebalance < 0.25) {
-    thisGaze = 0;
-    MGsoundFileGains[mixSceneNum * 2].amp(0.7);
-    FGsoundFileGains[mixSceneNum * 2].amp(0.5);
-    FGsoundFileGains[mixSceneNum * 2 + 1].amp(0.3);
-    MGsoundFileGains[mixSceneNum * 2 + 1].amp(0.1);
+    MGsoundFileGains[mixSceneNum * 2].amp(0.8, 0.1);
+    FGsoundFileGains[mixSceneNum * 2].amp(0.4, 0.1);
+    FGsoundFileGains[mixSceneNum * 2 + 1].amp(0.2, 0.1);
+    MGsoundFileGains[mixSceneNum * 2 + 1].amp(0.1, 0.1);
   } else if (voicebalance >= 0.25 && voicebalance < 0.5) {
-    thisGaze = 1;
-    MGsoundFileGains[mixSceneNum * 2].amp(0.5);
-    FGsoundFileGains[mixSceneNum * 2].amp(0.7);
-    FGsoundFileGains[mixSceneNum * 2 + 1].amp(0.5);
-    MGsoundFileGains[mixSceneNum * 2 + 1].amp(0.3);
+    MGsoundFileGains[mixSceneNum * 2].amp(0.4, 0.1);
+    FGsoundFileGains[mixSceneNum * 2].amp(0.8, 0.1);
+    FGsoundFileGains[mixSceneNum * 2 + 1].amp(0.4, 0.1);
+    MGsoundFileGains[mixSceneNum * 2 + 1].amp(0.2, 0.1);
   } else if (voicebalance >= 0.5 && voicebalance < 0.75) {
-    thisGaze = 2;
-    MGsoundFileGains[mixSceneNum * 2].amp(0.3);
-    FGsoundFileGains[mixSceneNum * 2].amp(0.5);
-    FGsoundFileGains[mixSceneNum * 2 + 1].amp(0.7);
-    MGsoundFileGains[mixSceneNum * 2 + 1].amp(0.5);
+    MGsoundFileGains[mixSceneNum * 2].amp(0.2, 0.1);
+    FGsoundFileGains[mixSceneNum * 2].amp(0.4, 0.1);
+    FGsoundFileGains[mixSceneNum * 2 + 1].amp(0.8, 0.1);
+    MGsoundFileGains[mixSceneNum * 2 + 1].amp(0.4, 0.1);
   } else {
-    thisGaze = 3;
-    MGsoundFileGains[mixSceneNum * 2].amp(0.1);
-    FGsoundFileGains[mixSceneNum * 2].amp(0.3);
-    FGsoundFileGains[mixSceneNum * 2 + 1].amp(0.5);
-    MGsoundFileGains[mixSceneNum * 2 + 1].amp(0.7);
+    MGsoundFileGains[mixSceneNum * 2].amp(0.1, 0.1);
+    FGsoundFileGains[mixSceneNum * 2].amp(0.2, 0.1);
+    FGsoundFileGains[mixSceneNum * 2 + 1].amp(0.4, 0.1);
+    MGsoundFileGains[mixSceneNum * 2 + 1].amp(0.8, 0.1);
   }
   //adjust foreground voices based on proximity
   soundVolume = constrain(outputArea, 0, 1);
-  masterGain.amp(soundVolume);
+  foregroundGain.amp(soundVolume, 0.1);
+  midgroundGain.amp(soundVolume, 0.1);
 }
+
+let first_scene9 = true;
 
 function scene9() {
   autoAdvance();
   background(bg_credits);
-  for (let i = 0; i < FGsoundFiles.length; i++) {
-    stopAudio(FGsoundFiles[i]);
-  }
-  background_on = false;
-  for (let i = 0; i < MGsoundFiles.length; i++) {
-    stopAudio(MGsoundFiles[i]);
-  }
-  for (let i = 0; i < BGsoundFiles.length; i++) {
-    stopAudio(BGsoundFiles[i]);
-  }
-  voices_on = false;
+  if (first_scene9) {
+    first_scene9 = false;
+    for (let i = 0; i < FGsoundFiles.length; i++) {
+      FGsoundFileGains[i].amp(0, 3);
+    }
+    background_on = false;
+    for (let i = 0; i < MGsoundFiles.length; i++) {
+      MGsoundFileGains[i].amp(0, 3);
+    }
+    for (let i = 0; i < BGsoundFiles.length; i++) {
+      BGsoundFileGains[i].amp(0, 3);
+    }
+    voices_on = false;
 
-  randBG = Math.floor(Math.random() * 6);
-  randMG = Math.floor(Math.random() * 12);
-  randFG = Math.floor(Math.random() * 12);
+    randBG = Math.floor(Math.random() * 6);
+    randMG = Math.floor(Math.random() * 12);
+    randFG = Math.floor(Math.random() * 12);
+  }
 
   if (!background_on) {
     BGsoundFiles[randBG].loop();
-    BGsoundFileGains[randBG].amp(0.1);
-    BGsoundFiles[randBG].fade(1, 1);
+    BGsoundFileGains[randBG].amp(1, 3);
     background_on = true;
   }
 
   if (!voices_on) {
     MGsoundFiles[randMG].loop();
-    MGsoundFileGains[randMG].amp(0.5);
-    MGsoundFiles[randMG].fade(1, 1);
+    MGsoundFileGains[randMG].amp(0.5, 3);
     FGsoundFiles[randFG].loop();
-    FGsoundFileGains[randFG].amp(0.7);
-    FGsoundFiles[randFG].fade(1, 1);
+    FGsoundFileGains[randFG].amp(0.7, 3);
     voices_on = true;
   }
 
   if (!wind_on) {
     soundFileWind.loop();
-    soundFileWindGain.amp(0.1);
-    soundFileWind.fade(1, 1);
+    soundFileWindGain.amp(1, 3);
     wind_on = true;
   }
 }
@@ -585,8 +584,8 @@ function scene9() {
 function scene10() {
   autoAdvance();
   background(bg_outro);
-  stopAudio(BGsoundFiles[randBG]);
-  stopAudio(MGsoundFiles[randMG]);
-  stopAudio(FGsoundFiles[randFG]);
-  stopAudio(soundFileWind);
+  BGsoundFileGains[randBG].amp(0, 2);
+  MGsoundFileGains[randMG].amp(0, 2);
+  FGsoundFileGains[randFG].amp(0, 2);
+  soundFileWindGain.amp(0, 2);
 }
