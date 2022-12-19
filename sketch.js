@@ -10,7 +10,7 @@ let background_on = false;
 let first_time = 1; // to only maximize on first time
 let sceneTimerStart = true; // for auto advance after x time
 
-let autoadvance_delay = 360; // seconds
+let autoadvance_delay = 20; // seconds
 const locPrefix = "assets/auditory/";
 const fileSufix = ".mp3";
 const locPrefixOrig = "assets/auditory/clips/";
@@ -103,6 +103,7 @@ function preload() {
       ""
     );
     BGsounds[variableName] = loadSound(filePath);
+    console.log(BGsounds[variableName]);
     BGsounds[variableName].setVolume(1);
     BGsounds[variableName].amp(1);
   }
@@ -125,6 +126,7 @@ function preload() {
       ""
     );
     MGsounds[variableName] = loadSound(filePath);
+    console.log(MGsounds[variableName]);
     MGsounds[variableName].setVolume(1);
     MGsounds[variableName].amp(1);
   }
@@ -147,6 +149,7 @@ function preload() {
       ""
     );
     FGsounds[variableName] = loadSound(filePath);
+    console.log(FGsounds[variableName]);
     FGsounds[variableName].setVolume(1);
     FGsounds[variableName].amp(1);
   }
@@ -191,12 +194,12 @@ function setupSounds() {
   // setup foreground gain
   midgroundGain = new p5.Gain();
   midgroundGain.connect(masterGain);
-  midgroundGain.amp(1);
+  midgroundGain.amp(0.3);
 
   // setup foreground gain
   foregroundGain = new p5.Gain();
   foregroundGain.connect(masterGain);
-  foregroundGain.amp(1);
+  foregroundGain.amp(0.3);
 
   soundFileWind.disconnect();
   soundFileWindGain = new p5.Gain();
@@ -288,8 +291,9 @@ function autoAdvance() {
   if (millis() - scene_start > autoadvance_delay * 1000) {
     background_on = false;
     voices_on = false;
-    scene_num++;
     sceneTimerStart = true;
+    console.log(scene_num);
+    scene_num++;
     if (scene_num == 11) {
       restartShow();
     }
@@ -531,7 +535,7 @@ function pan_sounds(mixSceneNum) {
     MGsoundFileGains[mixSceneNum * 2 + 1].amp(0.8, 0.1);
   }
   //adjust foreground voices based on proximity
-  soundVolume = constrain(outputArea, 0, 1);
+  soundVolume = map(outputArea, 0, 1, 0.5, 1);
   foregroundGain.amp(soundVolume, 0.1);
   midgroundGain.amp(soundVolume, 0.1);
 }
