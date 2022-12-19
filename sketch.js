@@ -10,7 +10,7 @@ let background_on = false;
 let first_time = 1; // to only maximize on first time
 let sceneTimerStart = true; // for auto advance after x time
 
-let autoadvance_delay = 20; // seconds
+let autoadvance_delay = 200; // seconds
 const locPrefix = "assets/auditory/";
 const fileSufix = ".mp3";
 const locPrefixOrig = "assets/auditory/clips/";
@@ -61,6 +61,8 @@ let outputX;
 let randBG;
 let randMG;
 let randFG;
+
+let first_scene9 = true;
 
 function setup() {
   // setup camera capture
@@ -274,6 +276,7 @@ function mousePressed() {
   background_on = false;
   voices_on = false;
   scene_num++;
+  console.log("Scene Number Incremented to ", scene_num);
 
   sceneTimerStart = true;
   if (scene_num == 11) {
@@ -288,15 +291,19 @@ function autoAdvance() {
   }
 
   // auto advance after autoadvance_delay seconds
+
   if (millis() - scene_start > autoadvance_delay * 1000) {
     background_on = false;
     voices_on = false;
     sceneTimerStart = true;
-    console.log(scene_num);
     scene_num++;
+    console.log("Scene Number Incremented to ", scene_num);
+    return true;
     if (scene_num == 11) {
       restartShow();
     }
+  } else {
+    return false;
   }
 }
 
@@ -367,10 +374,16 @@ function draw() {
 }
 
 function scene0() {
+  console.log("Start Of Show, intro 1/3");
+  console.log("scence_num:", scene_num);
+
   background(bg_title);
 }
 
 function scene1() {
+  console.log("Intro 2/3");
+  console.log("scence_num:", scene_num);
+
   autoAdvance();
   background(bg_cam);
   if (!wind_on) {
@@ -381,6 +394,9 @@ function scene1() {
 }
 
 function scene2() {
+  console.log("Intro 3/3");
+  console.log("scence_num:", scene_num);
+
   autoAdvance();
   background(bg_intro);
 }
@@ -388,83 +404,85 @@ function scene2() {
 function scene() {
   //put hotspot background on
 
-  autoAdvance();
+  doneScence = autoAdvance();
 
-  background(hotspots[scene_num - 3]);
+  if (!doneScence) {
+    background(hotspots[scene_num - 3]);
 
-  // flip camera to match head movement
-  if (videoInput) {
-    translate(videoInput.width, 0);
-    scale(-1, 1);
-  }
-  // get array of face marker positions [x, y] format
-  positions = ctracker.getCurrentPosition();
-  parameters = ctracker.getCurrentParameters();
-
-  // predict emotion
-  emotionRecognition = classifier.meanPredict(parameters);
-
-  // once these are working
-  if (positions && emotionRecognition) {
-    // check on smile
-    outputSmile = emotionRecognition[5].value;
-    // console.log(emotionRecognition);
-    // 0: {emotion: "angry", value: 0.05873836091453903}
-    // 1: {emotion: "disgusted", value: 0.006970389350505129}
-    // 2: {emotion: "fear", value: 0.007838597025081209}
-    // 3: {emotion: "sad", value: 0.3644606514967711}
-    // 4: {emotion: "surprised", value: 0.006303609805024607}
-    // 5: {emotion: "happy", value: 0.02721371664183402}
-    // console.log('Smile = ' + round(outputSmile * 100) + '%')
-
-    // calculate face size
-    let minX = width;
-    let maxX = 0;
-    let minY = height;
-    let maxY = 0;
-    for (var i = 0; i < positions.length; i++) {
-      if (positions[i][0] < minX) {
-        minX = positions[i][0];
-      }
-      if (positions[i][0] > maxX) {
-        maxX = positions[i][0];
-      }
-      if (positions[i][1] < minY) {
-        minY = positions[i][1];
-      }
-      if (positions[i][1] > maxY) {
-        maxY = positions[i][1];
-      }
+    // flip camera to match head movement
+    if (videoInput) {
+      translate(videoInput.width, 0);
+      scale(-1, 1);
     }
-    let boxWidth = maxX - minX;
-    let boxHeight = maxY - minY;
-    outputArea = (boxWidth * boxHeight) / (width * height);
-    outputArea = outputArea;
+    // get array of face marker positions [x, y] format
+    positions = ctracker.getCurrentPosition();
+    parameters = ctracker.getCurrentParameters();
 
-    // Draw box on face
-    push();
-    noFill();
-    strokeWeight(1);
-    rect(minX, minY, boxWidth, boxHeight);
+    // predict emotion
+    emotionRecognition = classifier.meanPredict(parameters);
 
-    // draw nose position
-    noStroke();
-    fill(0, 255, 255);
-    outputX = positions[62][0];
-    let outputY = positions[62][1];
-    // outputX = width - mouseX;
-    // outputY = mouseY;
+    // once these are working
+    if (positions && emotionRecognition) {
+      // check on smile
+      outputSmile = emotionRecognition[5].value;
+      // console.log(emotionRecognition);
+      // 0: {emotion: "angry", value: 0.05873836091453903}
+      // 1: {emotion: "disgusted", value: 0.006970389350505129}
+      // 2: {emotion: "fear", value: 0.007838597025081209}
+      // 3: {emotion: "sad", value: 0.3644606514967711}
+      // 4: {emotion: "surprised", value: 0.006303609805024607}
+      // 5: {emotion: "happy", value: 0.02721371664183402}
+      // console.log('Smile = ' + round(outputSmile * 100) + '%')
 
-    if (outputSmile > 0.9) {
-      image(nose_spot_green, outputX, outputY, CURSOR_SIZE, CURSOR_SIZE);
-    } else if (outputSmile < 0.1 && outputSmile != 0.0) {
-      image(nose_spot_red, outputX, outputY, CURSOR_SIZE, CURSOR_SIZE);
-    } else {
-      image(nose_spot, outputX, outputY, CURSOR_SIZE, CURSOR_SIZE);
+      // calculate face size
+      let minX = width;
+      let maxX = 0;
+      let minY = height;
+      let maxY = 0;
+      for (var i = 0; i < positions.length; i++) {
+        if (positions[i][0] < minX) {
+          minX = positions[i][0];
+        }
+        if (positions[i][0] > maxX) {
+          maxX = positions[i][0];
+        }
+        if (positions[i][1] < minY) {
+          minY = positions[i][1];
+        }
+        if (positions[i][1] > maxY) {
+          maxY = positions[i][1];
+        }
+      }
+      let boxWidth = maxX - minX;
+      let boxHeight = maxY - minY;
+      outputArea = (boxWidth * boxHeight) / (width * height);
+      outputArea = outputArea;
+
+      // Draw box on face
+      push();
+      noFill();
+      strokeWeight(1);
+      rect(minX, minY, boxWidth, boxHeight);
+
+      // draw nose position
+      noStroke();
+      fill(0, 255, 255);
+      outputX = positions[62][0];
+      let outputY = positions[62][1];
+      // outputX = width - mouseX;
+      // outputY = mouseY;
+
+      if (outputSmile > 0.9) {
+        image(nose_spot_green, outputX, outputY, CURSOR_SIZE, CURSOR_SIZE);
+      } else if (outputSmile < 0.1 && outputSmile != 0.0) {
+        image(nose_spot_red, outputX, outputY, CURSOR_SIZE, CURSOR_SIZE);
+      } else {
+        image(nose_spot, outputX, outputY, CURSOR_SIZE, CURSOR_SIZE);
+      }
+      pop();
+
+      pan_sounds(scene_num - 3);
     }
-    pop();
-
-    pan_sounds(scene_num - 3);
   }
 }
 
@@ -490,7 +508,9 @@ function pan_sounds(mixSceneNum) {
   }
 
   if (!background_on) {
+    console.log("Scene Number:", scene_num);
     console.log(BGsoundFiles[mixSceneNum]);
+
     BGsoundFiles[mixSceneNum].loop();
     BGsoundFileGains[mixSceneNum].amp(1, 1);
     background_on = true;
@@ -540,9 +560,9 @@ function pan_sounds(mixSceneNum) {
   midgroundGain.amp(soundVolume, 0.1);
 }
 
-let first_scene9 = true;
-
 function scene9() {
+  console.log("Credit Scene 1/2");
+  console.log("scence_num:", scene_num);
   autoAdvance();
   background(bg_credits);
   if (first_scene9) {
@@ -586,6 +606,8 @@ function scene9() {
 }
 
 function scene10() {
+  console.log("Credit Scene 2/2");
+  console.log("scence_num:", scene_num);
   autoAdvance();
   background(bg_outro);
   BGsoundFileGains[randBG].amp(0, 2);
