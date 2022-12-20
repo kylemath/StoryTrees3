@@ -105,7 +105,6 @@ function preload() {
       ""
     );
     BGsounds[variableName] = loadSound(filePath);
-    console.log(BGsounds[variableName]);
     BGsounds[variableName].setVolume(1);
     BGsounds[variableName].amp(1);
   }
@@ -128,7 +127,6 @@ function preload() {
       ""
     );
     MGsounds[variableName] = loadSound(filePath);
-    console.log(MGsounds[variableName]);
     MGsounds[variableName].setVolume(1);
     MGsounds[variableName].amp(1);
   }
@@ -151,7 +149,6 @@ function preload() {
       ""
     );
     FGsounds[variableName] = loadSound(filePath);
-    console.log(FGsounds[variableName]);
     FGsounds[variableName].setVolume(1);
     FGsounds[variableName].amp(1);
   }
@@ -276,7 +273,6 @@ function mousePressed() {
   background_on = false;
   voices_on = false;
   scene_num++;
-  console.log("Scene Number Incremented to ", scene_num);
 
   sceneTimerStart = true;
   if (scene_num == 11) {
@@ -297,7 +293,6 @@ function autoAdvance() {
     voices_on = false;
     sceneTimerStart = true;
     scene_num++;
-    console.log("Scene Number Incremented to ", scene_num);
     return true;
     if (scene_num == 11) {
       restartShow();
@@ -374,16 +369,10 @@ function draw() {
 }
 
 function scene0() {
-  console.log("Start Of Show, intro 1/3");
-  console.log("scence_num:", scene_num);
-
   background(bg_title);
 }
 
 function scene1() {
-  console.log("Intro 2/3");
-  console.log("scence_num:", scene_num);
-
   autoAdvance();
   background(bg_cam);
   if (!wind_on) {
@@ -394,9 +383,6 @@ function scene1() {
 }
 
 function scene2() {
-  console.log("Intro 3/3");
-  console.log("scence_num:", scene_num);
-
   autoAdvance();
   background(bg_intro);
 }
@@ -508,9 +494,6 @@ function pan_sounds(mixSceneNum) {
   }
 
   if (!background_on) {
-    console.log("Scene Number:", scene_num);
-    console.log(BGsoundFiles[mixSceneNum]);
-
     BGsoundFiles[mixSceneNum].loop();
     BGsoundFileGains[mixSceneNum].amp(1, 1);
     background_on = true;
@@ -561,8 +544,6 @@ function pan_sounds(mixSceneNum) {
 }
 
 function scene9() {
-  console.log("Credit Scene 1/2");
-  console.log("scence_num:", scene_num);
   autoAdvance();
   background(bg_credits);
   if (first_scene9) {
@@ -606,8 +587,6 @@ function scene9() {
 }
 
 function scene10() {
-  console.log("Credit Scene 2/2");
-  console.log("scence_num:", scene_num);
   autoAdvance();
   background(bg_outro);
   BGsoundFileGains[randBG].amp(0, 2);
